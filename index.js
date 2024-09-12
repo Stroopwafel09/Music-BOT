@@ -1,90 +1,96 @@
-const { Client, GatewayIntentBits, ActivityType, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
 const { EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
-
+const express = require('express');
 require('dotenv').config();
+const { printWatermark } = require('./functions/handlers');
+TOKEN = "MTI4MzA1MzIyNDA2NDA1NzQyNA.GW3EUP.lIpCH0M4xL25_KWkTjEwofoYOMBfeLyGiyOCGQ"
+
 
 const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildMessageReactions,
-        GatewayIntentBits.GuildBans,
-        GatewayIntentBits.GuildVoiceStates,
-        GatewayIntentBits.GuildInvites,
-        GatewayIntentBits.GuildMessageTyping,
-        GatewayIntentBits.DirectMessages,
-        GatewayIntentBits.DirectMessageReactions,
-        GatewayIntentBits.DirectMessageTyping,
-    ],
+  intents: Object.keys(GatewayIntentBits).map((a) => {
+    return GatewayIntentBits[a];
+  }),
 });
 
-// Set the prefix for the bot
-const prefixData = require('./prefix.json');
-const prefix = prefixData.prefix;
-const config = require('./config.json');
+const prefix = '$';
+client.commands = new Map(); 
 
-const spotifyClientId = config.spotify.clientId;
-const spotifyClientSecret = config.spotify.clientSecret;
-const youtubeApiKey = config.youtube.apiKey;
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
+for (const file of commandFiles) {
+  const command = require(`./commands/${file}`);
+  client.commands.set(command.name, command);
+}
+
+
+client.on('messageCreate', (message) => {
+  if (!message.content.startsWith(prefix) || message.author.bot) return;
+
+  const args = message.content.slice(prefix.length).trim().split(/ +/);
+  const commandName = args.shift().toLowerCase();
+
+  const command = client.commands.get(commandName);
+
+  if (!command) return;
+
+  try {
+    command.execute(message, args);
+  } catch (error) {
+    console.error(error);
+    message.reply('There was an error trying to execute that command!');
+  }
+});
+
+const app = express();
+const port = 3000;
+app.get('/', (req, res) => {
+  const imagePath = path.join(__dirname, 'index.html');
+  res.sendFile(imagePath);
+});
+app.listen(port, () => {
+  console.log(`🔗 Listening to GlaceYT : http://localhost:${port}`);
+});
+printWatermark();
+
+
+async function login() {
+  try {
+    await client.login(TOKEN);
+    console.log('\x1b[32m%s\x1b[0m', '|    🍔 Bot logged in successfully!');
+    console.log('\x1b[36m%s\x1b[0m', '|    🚀 Commands Loaded successfully!');
+    console.log('\x1b[32m%s\x1b[0m', `|    🌼 Logged in as ${client.user.username}`);
+    console.log('\x1b[36m%s\x1b[0m', `|    🏡 Bot is in ${client.guilds.cache.size} servers`);
+  } catch (error) {
+    console.error('\x1b[31m%s\x1b[0m', '❌ Failed to log in:', error);
+    console.log('\x1b[31m%s\x1b[0m', '❌ Client Not Login, Restarting Process...');
+    process.kill(1);
+  }
+}
 
 
 client.once('ready', () => {
-    console.log('Commands Loaded successfully ❤️.');
-    console.log(`Logged in as ${client.user.username}`);
-    console.log(`Bot is in ${client.guilds.cache.size} servers`);
-    console.log(`Total members across all servers: ${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)}`);
-    console.log('MADE BY RTX GAMING');
+  setTimeout(() => {
+    console.log('\x1b[32m%s\x1b[0m', `|    🎯 Activity sucessfully set!`);
     client.user.setPresence({
-        activities: [{
-            name: 'with RTX',
-            type: ActivityType.Playing,
-            url: 'https://www.twitch.tv/RTX'
-        }],
-        status: 'available'
+      activities: [{ name: `Type $help for Info`, type: ActivityType.Custom }],
+      status: 'dnd',
     });
-});
-client.commands = new Map();
-
-
-const commandsPath = path.join(__dirname, 'commands');
-const musicCommandsPath = path.join(__dirname, 'musicCommands');
-
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-const musicCommandFiles = fs.readdirSync(musicCommandsPath).filter(file => file.endsWith('.js'));
-
-for (const file of commandFiles) {
-    const command = require(path.join(commandsPath, file));
-    client.commands.set(command.name, command);
-}
-
-for (const file of musicCommandFiles) {
-    const command = require(path.join(musicCommandsPath, file));
-    client.commands.set(command.name, command);
-}
-
-
-client.on('messageCreate', message => {
-    if (!message.content.startsWith(prefix) || message.author.bot) return;
-
-    const args = message.content.slice(prefix.length).trim().split(/ +/);
-    const commandName = args.shift().toLowerCase();
-
-    const command = client.commands.get(commandName);
-
-    if (!command) return;
-
-    try {
-        command.execute(message, args);
-    } catch (error) {
-        console.error(error);
-        message.reply('There was an error trying to execute that command!');
-    }
+  }, 2000); 
 });
 
 
-client.login(process.env.TOKEN);
+login();
+
+
+setInterval(() => {
+  if (!client || !client.user) {
+    console.log('\x1b[31m%s\x1b[0m', '❌ Client Not Logged in, Restarting Process...');
+    process.kill(1);
+  }
+}, 15000);
+
+module.exports = client;
+
+

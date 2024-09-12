@@ -1,0 +1,12 @@
+{
+  "files": {
+    "commands/announce.js": [
+      {
+        "id": "b8364760-ebd9-4c99-b68c-d3187f07a3e8",
+        "line": 1,
+        "version": 1,
+        "index": 0
+      }
+    ]
+  }
+}

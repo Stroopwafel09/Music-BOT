@@ -1,17 +1,25 @@
 const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
-    name: 'ping',
-    description: 'Check the bot\'s ping',
-    execute(message, args) {
-        const ping = message.client.ws.ping;
-        const embed = new EmbedBuilder()
-            .setColor('#FFFFFF')
-            .setTitle('Bot Latency')
-            .setDescription(`<:stable_ping:1050784879530496010> The bot's ping is ${ping}ms.`)
-            .setTimestamp();
+  name: 'ping',
+  description: 'Check the bot\'s latency',
+  execute(message, args) {
+    const pingEmbed = new EmbedBuilder()
+      .setColor('#0099ff')
+      .setTitle('Ping')
+      .setDescription('Checking the bot\'s latency...')
+      .setTimestamp();
 
+    message.reply({ embeds: [pingEmbed] }).then(sentMessage => {
+      const ping = sentMessage.createdTimestamp - message.createdTimestamp;
 
-        message.channel.send({ embeds: [embed] });
-    },
+      const updatedPingEmbed = new EmbedBuilder()
+        .setColor('#0099ff')
+        .setTitle('Ping')
+        .setDescription(`Bot latency: ${ping}ms`)
+        .setTimestamp();
+
+      sentMessage.edit({ embeds: [updatedPingEmbed] });
+    });
+  },
 };
